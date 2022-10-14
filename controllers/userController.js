@@ -29,7 +29,7 @@ const pg = require('../postgres');
 exports.getUser = (req, res) => {
   const { email } = req.query;
 
-  pg.query(`SELECT * FROM user WHERE email = '${email}';`, (err, result) => {
+  pg.query(`SELECT * FROM member WHERE email = '${email}';`, (err, result) => {
     if (err) {
       res.json({
         status: 'error',
