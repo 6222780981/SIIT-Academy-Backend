@@ -15,5 +15,5 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use('/user', userRouter);
 app.use('/course', courseRouter);
-
+// app.use('/course/student', studentcourseRouter);
 module.exports = app;
