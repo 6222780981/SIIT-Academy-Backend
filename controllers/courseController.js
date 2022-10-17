@@ -1,14 +1,11 @@
 const pg = require('../postgres');
 
+//add new course to course table
 exports.postCourse = (req, res) => {
-  const { courseId } = req.query[1];
-  const { courseName } = req.query[2];
-  const { teacherId } = req.query[3];
-  const { programArr } = req.query[4];
-  const { yearArr } = req.query[5];
+  const { courseId, courseName, teacherId, programArr, yearArr } = req.body;
 
   pg.query(
-    `INSERT INTO course(course_id,course_name,teacher_id,program,year) VALUE('${courseId}','${courseName}',${teacherId},${programArr},${yearArr});`,
+    `INSERT INTO course(course_id,course_name,teacher_id,program_arr,year_arr) VALUES('${courseId}','${courseName}',${teacherId},ARRAY[${programArr}],ARRAY[${yearArr}]);`,
     (err, result) => {
       if (err) {
         res.json({
@@ -25,3 +22,5 @@ exports.postCourse = (req, res) => {
     }
   );
 };
+
+exports.getCourse = (req, res) => {};
