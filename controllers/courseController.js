@@ -1,6 +1,7 @@
 const { config } = require('dotenv');
 const e = require('express');
 const pg = require('../postgres');
+const asyncHandler = require('express-async-handler');
 
 function extractArray(inputArray) {
   var newString = '';
@@ -43,7 +44,8 @@ exports.postCourse = (req, res) => {
 //call course
 exports.getCourse = (req, res) => {
   const { yearArr, programArr, studentId, teacherId } = req.body;
-
+  // have to search year, program, student from course's column
+  // they are all ARRAY
   let where = '';
   if (yearArr) {
     where += `${where.length > 0 ? ' AND' : 'WHERE'} year_arr = ${yearArr}`;
@@ -55,7 +57,7 @@ exports.getCourse = (req, res) => {
     where += `${where.length > 0 ? ' AND' : 'WHERE'} student_id_arr = ${studentId}`;
   }
   if (teacherId) {
-    where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
+    where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`; //this should works
   }
 
   pg.query(`SELECT course_id, course_name, teacher_id FROM course ${where} ORDER BY course_id`, (err, result) => {
@@ -86,6 +88,83 @@ exports.getCourse = (req, res) => {
       },
     });
   });
+};
+
+exports.getCourseTest = (req, res) => {
+  const { yearArr, programArr, studentId, teacherId } = req.query;
+
+  var programArrString = "'" + programArr + "'";
+
+  var checkInArray = async (inputValue, wantedCol) => {
+    //inputValue= variable from frontend, wantedCol= attribute from database
+    return await pg.query(`SELECT ${wantedCol} FROM course WHERE ${inputValue} = any (${wantedCol});`).then((result) => result.rows);
+  };
+
+  let where = '';
+
+  (async () => {
+    if (await yearArr) {
+      var yearCheck = await checkInArray(yearArr, 'year_arr');
+      if (yearCheck.length !== 0) {
+        // console.log('course found for this year');
+        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${yearArr} = any (year_arr)`;
+      } else {
+        console.log('no course found for this year');
+      }
+    }
+
+    if (await programArr) {
+      var programCheck = await checkInArray(programArrString, 'program_arr');
+      if (programCheck.length !== 0) {
+        // console.log('course found for this program');
+
+        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${programArrString} = any (program_arr)`;
+      } else {
+        console.log('no course found for this program');
+      }
+    }
+
+    if (await studentId) {
+      var studentCheck = await checkInArray(studentId, 'student_id_arr');
+      if (studentCheck.length !== 0) {
+        // console.log('course found for this student');
+        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${studentId} = any (student_id_arr)`;
+      } else {
+        console.log('no course found for this studentId');
+      }
+    }
+    if (await teacherId) {
+      where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
+    }
+
+    console.log(where);
+
+    pg.query(`SELECT * FROM course ${where};`, (err, result, body) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+
+      const resultArr = result.rows; // postgres returns array of rows
+      if (resultArr.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'No course for given user',
+        });
+        return;
+      }
+
+      res.json({
+        status: 'success',
+        data: {
+          courseArr: resultArr,
+        },
+      });
+    });
+  })();
 };
 
 //add student

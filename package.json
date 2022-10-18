@@ -11,7 +11,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "express": "^4.17.1",
-    "nodemon": "^2.0.20",
+    "express-async-handler": "^1.2.0",
     "pg": "^8.7.1"
   },
   "engines": {
