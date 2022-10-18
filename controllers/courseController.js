@@ -18,82 +18,66 @@ function extractArray(inputArray) {
 
 //add new course to course table
 exports.postCourse = (req, res) => {
-  const { courseId, courseName, teacherId, programArr, yearArr } = req.body;
+  const { courseId, courseName, teacherUsername, programArr, yearArr} = req.body;
 
   var programString = extractArray(programArr);
 
-  pg.query(
-    `INSERT INTO course(course_id,course_name,teacher_id,program_arr,year_arr) VALUES('${courseId}','${courseName}',${teacherId},ARRAY[${programString}],ARRAY[${yearArr}]);`,
-    (err, result) => {
-      if (err) {
-        res.json({
-          status: 'error',
-          message: err.message,
-        });
-        return;
-      }
+  (async () => {
+    var courseCheck = await pg.query(`SELECT course_id FROM course WHERE course_id = '${courseId}';`).then((result) => result.rows);
+    var usernameCheck = await pg
+      .query(`SELECT user_id FROM member WHERE username = '${teacherUsername}' AND role = 'teacher';`)
+      .then((result) => result.rows);
 
-      res.json({
-        status: 'success',
-        message: 'insertion successful',
-      });
-    }
-  );
-};
-
-//call course
-exports.getCourse = (req, res) => {
-  const { yearArr, programArr, studentId, teacherId } = req.body;
-  // have to search year, program, student from course's column
-  // they are all ARRAY
-  let where = '';
-  if (yearArr) {
-    where += `${where.length > 0 ? ' AND' : 'WHERE'} year_arr = ${yearArr}`;
-  }
-  if (programArr) {
-    where += `${where.length > 0 ? ' AND' : 'WHERE'} program_arr = ${programArr}`;
-  }
-  if (studentId) {
-    where += `${where.length > 0 ? ' AND' : 'WHERE'} student_id_arr = ${studentId}`;
-  }
-  if (teacherId) {
-    where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`; //this should works
-  }
-
-  pg.query(`SELECT course_id, course_name, teacher_id FROM course ${where} ORDER BY course_id`, (err, result) => {
-    if (err) {
-      res.json({
-        status: 'error',
-        message: err.message,
-      });
-      return;
-    }
-
-    const resultArr = result.rows; // postgres returns array of rows
-    if (resultArr.length === 0) {
+    if ((await courseCheck.length) !== 0) {
+      //courseId already existing in the database
       res.json({
         status: 'fail',
-        message: 'No course for given user',
+        message: 'course with the given id already exists in database',
       });
       return;
+    } else {
+      // console.log('course can be created, no existing course id matched');
     }
 
-    const course = resultArr[0]; //check first course
-    res.json({
-      status: 'success',
-      data: {
-        courseId: course.course_id,
-        courseName: course.course_name,
-        course: course.teacher_id,
-      },
-    });
-  });
+    if ((await usernameCheck.length) === 0) {
+      //teacherUsername does not exist
+      res.json({
+        status: 'fail',
+        message: 'teacher with the given username does not exists in database',
+      });
+      return;
+    } else {
+      // console.log('course can be created, teacherUsername is existing');
+      // console.log(usernameCheck[0].user_id);
+      var userIdKeeper = usernameCheck[0].user_id;
+    }
+
+    await pg.query(
+      `INSERT INTO course(course_id,course_name,teacher_id,program_arr,year_arr) VALUES('${courseId}','${courseName}',${userIdKeeper},ARRAY[${programString}],ARRAY[${yearArr}]);`,
+      (err, result) => {
+        if (err) {
+          console.log('error in main query');
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+
+        res.json({
+          status: 'success',
+          message: 'insertion successful',
+        });
+      }
+    );
+  })();
 };
 
-exports.getCourseTest = (req, res) => {
-  const { yearArr, programArr, studentId, teacherId } = req.query;
+//fetch course
+exports.getCourse = (req, res) => {
+  const { year, program, studentId, teacherId } = req.query;
 
-  var programArrString = "'" + programArr + "'";
+  var programString = "'" + program + "'";
 
   var checkInArray = async (inputValue, wantedCol) => {
     //inputValue= variable from frontend, wantedCol= attribute from database
@@ -103,24 +87,24 @@ exports.getCourseTest = (req, res) => {
   let where = '';
 
   (async () => {
-    if (await yearArr) {
-      var yearCheck = await checkInArray(yearArr, 'year_arr');
+    if (await year) {
+      var yearCheck = await checkInArray(year, 'year_arr');
       if (yearCheck.length !== 0) {
         // console.log('course found for this year');
-        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${yearArr} = any (year_arr)`;
+        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${year} = any (year_arr)`;
       } else {
-        console.log('no course found for this year');
+        // console.log('no course found for this year');
       }
     }
 
-    if (await programArr) {
-      var programCheck = await checkInArray(programArrString, 'program_arr');
+    if (await program) {
+      var programCheck = await checkInArray(programString, 'program_arr');
       if (programCheck.length !== 0) {
         // console.log('course found for this program');
 
-        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${programArrString} = any (program_arr)`;
+        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${programString} = any (program_arr)`;
       } else {
-        console.log('no course found for this program');
+        // console.log('no course found for this program');
       }
     }
 
@@ -130,14 +114,14 @@ exports.getCourseTest = (req, res) => {
         // console.log('course found for this student');
         where += `${where.length > 0 ? ' AND' : 'WHERE'} ${studentId} = any (student_id_arr)`;
       } else {
-        console.log('no course found for this studentId');
+        // console.log('no course found for this studentId');
       }
     }
     if (await teacherId) {
       where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
     }
 
-    console.log(where);
+    // console.log(where);
 
     pg.query(`SELECT * FROM course ${where};`, (err, result, body) => {
       if (err) {
@@ -148,11 +132,11 @@ exports.getCourseTest = (req, res) => {
         return;
       }
 
-      const resultArr = result.rows; // postgres returns array of rows
+      const resultArr = result.rows; // postgres returns array of rows --> course does not exist
       if (resultArr.length === 0) {
         res.json({
           status: 'fail',
-          message: 'No course for given user',
+          message: 'Courses with the given filter does not exist in database',
         });
         return;
       }
@@ -169,27 +153,56 @@ exports.getCourseTest = (req, res) => {
 
 //add student
 exports.patchStudent = (req, res) => {
-  const { courseId, email } = req.body;
+  const { courseId, studentEmailArr } = req.body;
   var studentIdArray;
-  var userIdKeeper;
+  // var userIdKeeper;
 
-  pg.query(`SELECT user_id FROM member WHERE email='${email}'`).then((result) => {
-    userIdKeeper = result.rows[0].user_id;
-    pg.query(`SELECT student_id_arr FROM course WHERE course_id ='CSS422';`).then((row) => {
+  (async () => {
+    var courseCheck = await pg.query(`SELECT course_id FROM course WHERE course_id = '${courseId}';`).then((result) => result.rows);
+    var emailCheck = await pg
+      .query(`SELECT user_id FROM member WHERE email = '${studentEmailArr}' AND role = 'student';`)
+      .then((result) => result.rows);
+
+    if ((await courseCheck.length) === 0) {
+      //courseId already existing in the database
+      res.json({
+        status: 'fail',
+        message: 'course with the given id does not exists in database',
+      });
+      return;
+    } else {
+      console.log('course exist, can add student');
+    }
+
+    if ((await emailCheck.length) === 0) {
+      //email does not exist;
+      res.json({
+        status: 'fail',
+        message: 'student with the given email does not exists in database',
+      });
+      return;
+    } else {
+      console.log('student is exist in database');
+      console.log(emailCheck);
+      var userIdKeeper = emailCheck[0].user_id;
+    }
+
+    pg.query(`SELECT student_id_arr FROM course WHERE course_id ='${courseId}';`).then((row) => {
       studentIdArray = row.rows[0].student_id_arr;
       const found = studentIdArray.some((el) => el === userIdKeeper); // check duplicate email in course (should not be dup)
-
+      console.log('----studentIdArray----');
+      console.log(studentIdArray);
       if (found) {
-        // console.log('This user id found in the course');
+        //student duplicate
         res.json({
           status: 'fail',
-          message: 'This student is already in the course',
+          message: 'student with the given email already in the course',
         });
         return;
       } else {
-        // console.log('This user id is not found in the course');
+        //student can add to course
         pg.query(
-          `UPDATE course SET student_id_arr = array_append(student_id_arr, (SELECT user_id FROM member WHERE email='${email}')) WHERE course_id = '${courseId}';`,
+          `UPDATE course SET student_id_arr = array_append(student_id_arr, (SELECT user_id FROM member WHERE email='${studentEmailArr}')) WHERE course_id = '${courseId}';`,
           (err, result) => {
             if (err) {
               res.json({
@@ -201,11 +214,11 @@ exports.patchStudent = (req, res) => {
 
             res.json({
               status: 'success',
-              message: 'update successful',
+              message: 'successfully update student list',
             });
           }
         );
       }
     });
-  });
+  })();
 };
