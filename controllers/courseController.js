@@ -101,34 +101,40 @@ exports.getCourse = (req, res) => {
       } else {
         // console.log('no course found for this year');
       }
-    }
 
-    if (await program) {
-      console.log('if program');
-      var programCheck = await checkInArray(programString, 'program_arr');
-      if (programCheck.length !== 0) {
-        // console.log('course found for this program');
-        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${programString} = any (program_arr)`;
-        console.log(where);
-      } else {
-        // console.log('no course found for this program');
+      if (await program) {
+        console.log('if program');
+        var programCheck = await checkInArray(programString, 'program_arr');
+        if (programCheck.length !== 0) {
+          // console.log('course found for this program');
+          where += `${where.length > 0 ? ' AND' : 'WHERE'} ${programString} = any (program_arr)`;
+          console.log(where);
+        } else {
+          // console.log('no course found for this program');
+        }
+
+        if (await studentId) {
+          console.log('if student');
+          var studentCheck = await checkInArray(studentId, 'student_id_arr');
+          if (studentCheck.length !== 0) {
+            // console.log('course found for this student');
+            where += `${where.length > 0 ? ' AND' : 'WHERE'} ${studentId} = any (student_id_arr)`;
+          } else {
+            // console.log('no course found for this studentId');
+          }
+
+          if (await teacherId) {
+            console.log('if teacher');
+            where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
+          }
+        }
       }
     }
 
-    if (await studentId) {
-      console.log('if student');
-      var studentCheck = await checkInArray(studentId, 'student_id_arr');
-      if (studentCheck.length !== 0) {
-        // console.log('course found for this student');
-        where += `${where.length > 0 ? ' AND' : 'WHERE'} ${studentId} = any (student_id_arr)`;
-      } else {
-        // console.log('no course found for this studentId');
-      }
-    }
-    if (await teacherId) {
-      console.log('if teacher');
-      where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
-    }
+    
+
+    
+    
 
     // console.log(where);
     // console.log('where should be here');
