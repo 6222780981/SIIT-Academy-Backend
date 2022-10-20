@@ -1,7 +1,4 @@
-const { config } = require('dotenv');
-const e = require('express');
 const pg = require('../postgres');
-const asyncHandler = require('express-async-handler');
 
 function extractArray(inputArray) {
   var newString = '';
@@ -73,6 +70,7 @@ exports.postCourse = (req, res) => {
   })();
 };
 
+/*
 //fetch course
 exports.getCourse = (req, res) => {
   const { year, program, studentId, teacherId } = req.query;
@@ -167,6 +165,60 @@ exports.getCourse = (req, res) => {
       );
     }
   })();
+};
+*/
+
+exports.getCourse = (req, res) => {
+  const { year, program, student_id: studentId, teacher_id: teacherId } = req.query;
+
+  let where = '';
+
+  if (year) {
+    where += `WHERE ${year} = ANY(year_arr)`;
+  }
+
+  if (program) {
+    where += `${where ? ' AND' : 'WHERE'} '${program}' = ANY(program_arr)`;
+  }
+
+  if (studentId) {
+    where += `${where ? ' AND' : 'WHERE'} ${studentId} = ANY(student_id_arr)`;
+  }
+
+  if (teacherId) {
+    where += `${where ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
+  }
+
+  console.log(where);
+
+  pg.query(
+    `SELECT course.*, member.username FROM course INNER JOIN member ON course.teacher_id = member.user_id ${where} ORDER BY course_id;`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+
+      const resultArr = result.rows;
+      if (resultArr.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'courses with the given filter does not exist in database',
+        });
+        return;
+      }
+
+      res.json({
+        status: 'success',
+        data: {
+          courseArr: resultArr,
+        },
+      });
+    }
+  );
 };
 
 //add student
