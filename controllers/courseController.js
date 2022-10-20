@@ -18,7 +18,7 @@ function extractArray(inputArray) {
 
 //add new course to course table
 exports.postCourse = (req, res) => {
-  const { courseId, courseName, teacherUsername, programArr, yearArr} = req.body;
+  const { courseId, courseName, teacherUsername, programArr, yearArr } = req.body;
 
   var programString = extractArray(programArr);
 
@@ -76,6 +76,10 @@ exports.postCourse = (req, res) => {
 //fetch course
 exports.getCourse = (req, res) => {
   const { year, program, studentId, teacherId } = req.query;
+  console.log(year);
+  console.log(program);
+  console.log(studentId);
+  console.log(teacherId);
 
   var programString = "'" + program + "'";
 
@@ -87,7 +91,8 @@ exports.getCourse = (req, res) => {
   let where = '';
 
   (async () => {
-    if (await year) {
+    if (year) {
+      console.log('if year');
       var yearCheck = await checkInArray(year, 'year_arr');
       if (yearCheck.length !== 0) {
         // console.log('course found for this year');
@@ -97,7 +102,8 @@ exports.getCourse = (req, res) => {
       }
     }
 
-    if (await program) {
+    if (program) {
+      console.log('if program');
       var programCheck = await checkInArray(programString, 'program_arr');
       if (programCheck.length !== 0) {
         // console.log('course found for this program');
@@ -108,7 +114,8 @@ exports.getCourse = (req, res) => {
       }
     }
 
-    if (await studentId) {
+    if (studentId) {
+      console.log('if student');
       var studentCheck = await checkInArray(studentId, 'student_id_arr');
       if (studentCheck.length !== 0) {
         // console.log('course found for this student');
@@ -117,37 +124,43 @@ exports.getCourse = (req, res) => {
         // console.log('no course found for this studentId');
       }
     }
-    if (await teacherId) {
+    if (teacherId) {
+      console.log('if teacher');
       where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
     }
 
     // console.log(where);
+    console.log('where should be here');
+    console.log(where);
+    console.log('where stop here');
 
-    pg.query(`SELECT * FROM course ${where};`, (err, result, body) => {
-      if (err) {
+    if (where.length !== 0) {
+      pg.query(`SELECT * FROM course ${where};`, (err, result, body) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+
+        const resultArr = result.rows; // postgres returns array of rows --> course does not exist
+        if (resultArr.length === 0) {
+          res.json({
+            status: 'fail',
+            message: 'Courses with the given filter does not exist in database',
+          });
+          return;
+        }
+
         res.json({
-          status: 'error',
-          message: err.message,
+          status: 'success',
+          data: {
+            courseArr: resultArr,
+          },
         });
-        return;
-      }
-
-      const resultArr = result.rows; // postgres returns array of rows --> course does not exist
-      if (resultArr.length === 0) {
-        res.json({
-          status: 'fail',
-          message: 'Courses with the given filter does not exist in database',
-        });
-        return;
-      }
-
-      res.json({
-        status: 'success',
-        data: {
-          courseArr: resultArr,
-        },
       });
-    });
+    }
   })();
 };
 
