@@ -91,30 +91,31 @@ exports.getCourse = (req, res) => {
   let where = '';
 
   (async () => {
-    if (year) {
+    if (await year) {
       console.log('if year');
       var yearCheck = await checkInArray(year, 'year_arr');
       if (yearCheck.length !== 0) {
         // console.log('course found for this year');
         where += `${where.length > 0 ? ' AND' : 'WHERE'} ${year} = any (year_arr)`;
+        console.log(where);
       } else {
         // console.log('no course found for this year');
       }
     }
 
-    if (program) {
+    if (await program) {
       console.log('if program');
       var programCheck = await checkInArray(programString, 'program_arr');
       if (programCheck.length !== 0) {
         // console.log('course found for this program');
-
         where += `${where.length > 0 ? ' AND' : 'WHERE'} ${programString} = any (program_arr)`;
+        console.log(where);
       } else {
         // console.log('no course found for this program');
       }
     }
 
-    if (studentId) {
+    if (await studentId) {
       console.log('if student');
       var studentCheck = await checkInArray(studentId, 'student_id_arr');
       if (studentCheck.length !== 0) {
@@ -124,42 +125,46 @@ exports.getCourse = (req, res) => {
         // console.log('no course found for this studentId');
       }
     }
-    if (teacherId) {
+    if (await teacherId) {
       console.log('if teacher');
       where += `${where.length > 0 ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
     }
 
     // console.log(where);
-    console.log('where should be here');
-    console.log(where);
-    console.log('where stop here');
+    // console.log('where should be here');
+    // console.log(where);
+    // console.log('where stop here');
 
-    if (where.length !== 0) {
-      pg.query(`SELECT * FROM course ${where};`, (err, result, body) => {
-        if (err) {
+    if ((await where.length) !== 0) {
+      console.log(where);
+      pg.query(
+        `SELECT course.*, member.username FROM course, member ${where}AND course.teacher_id = member.user_id;`,
+        (err, result, body) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+
+          const resultArr = result.rows; // postgres returns array of rows --> course does not exist
+          if (resultArr.length === 0) {
+            res.json({
+              status: 'fail',
+              message: 'Courses with the given filter does not exist in database',
+            });
+            return;
+          }
+
           res.json({
-            status: 'error',
-            message: err.message,
+            status: 'success',
+            data: {
+              courseArr: resultArr,
+            },
           });
-          return;
         }
-
-        const resultArr = result.rows; // postgres returns array of rows --> course does not exist
-        if (resultArr.length === 0) {
-          res.json({
-            status: 'fail',
-            message: 'Courses with the given filter does not exist in database',
-          });
-          return;
-        }
-
-        res.json({
-          status: 'success',
-          data: {
-            courseArr: resultArr,
-          },
-        });
-      });
+      );
     }
   })();
 };
