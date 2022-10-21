@@ -124,6 +124,45 @@ exports.getCourse = (req, res) => {
   );
 };
 
+//Delete course
+exports.deleteCourse = (req, res) => {
+  const { courseId } = req.body;
+
+  pg.query(`SELECT course_id FROM course WHERE course_id = '${courseId}';`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    else if (result.rows.length === 0) {
+      //courseId does not exist in database
+      res.json({
+        status: 'fail',
+        message: 'the given course id does not exist in database',
+      });
+      return;
+    }
+    else {
+      // console.log('course can be created, no existing course id matched');
+      pg.query(`DELETE FROM course WHERE course_id = '${courseId}';`, (err, result) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+        res.json({
+          status: 'success',
+          message: 'course deleted successfully',
+        });
+      });
+    }
+  });
+};
+
 //add student
 exports.patchStudent = (req, res) => {
   const { courseId, studentEmailArr } = req.body;
