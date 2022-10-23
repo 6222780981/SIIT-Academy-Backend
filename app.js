@@ -4,6 +4,7 @@ const bodyParser = require('body-parser'); //----
 
 const userRouter = require('./routes/userRoutes');
 const courseRouter = require('./routes/courseRoutes');
+const weekRouter = require('./routes/weekRoutes');
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use('/user', userRouter);
 app.use('/course', courseRouter);
+app.use('/week', weekRouter);
 // app.use('/course/student', studentcourseRouter);
 module.exports = app;
