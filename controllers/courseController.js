@@ -72,9 +72,10 @@ exports.postCourse = (req, res) => {
 
 //find course
 exports.getCourse = (req, res) => {
-  const { year, program, student_id: studentId, teacher_id: teacherId } = req.query;
+  const { year, program, student_id: studentId, teacher_id: teacherId, courseId } = req.query;
 
   let where = '';
+  let teacherQuery = '';
 
   if (year) {
     where += `WHERE ${year} = ANY(year_arr)`;
@@ -90,6 +91,10 @@ exports.getCourse = (req, res) => {
 
   if (teacherId) {
     where += `${where ? ' AND' : 'WHERE'} teacher_id = ${teacherId}`;
+  }
+
+  if (courseId) {
+    where += `${where ? ' AND' : 'WHERE'} course_id = '${courseId}'`;
   }
 
   // console.log(where);
@@ -135,16 +140,14 @@ exports.deleteCourse = (req, res) => {
         message: err.message,
       });
       return;
-    }
-    else if (result.rows.length === 0) {
+    } else if (result.rows.length === 0) {
       //courseId does not exist in database
       res.json({
         status: 'fail',
         message: 'the given course id does not exist in database',
       });
       return;
-    }
-    else {
+    } else {
       // console.log('course can be created, no existing course id matched');
       pg.query(`DELETE FROM course WHERE course_id = '${courseId}';`, (err, result) => {
         if (err) {
