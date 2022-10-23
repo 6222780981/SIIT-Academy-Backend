@@ -75,7 +75,6 @@ exports.getCourse = (req, res) => {
   const { year, program, student_id: studentId, teacher_id: teacherId, courseId } = req.query;
 
   let where = '';
-  let teacherQuery = '';
 
   if (year) {
     where += `WHERE ${year} = ANY(year_arr)`;

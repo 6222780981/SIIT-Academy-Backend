@@ -1,29 +1,3 @@
-/* 
-
-response format
-
-exports.getSetup = (req, res) => {
-  const params = req.params;
-  const query = req.query;
-  const body = req.body;
-
-  res.json({
-    status: 'success || fail || error',
-    data: {
-      key1: '...',
-      key2: '...',
-      ...
-    },
-    message: 'fail message || error message',
-  });
-};
-
-// status must be one of the following: success, fail, error
-// data is only returned when status is success (does not have to return data if there is nothing to return)
-// message is only returned when status is fail or error (must always return message when status is fail or error)
-
-*/
-
 const pg = require('../postgres');
 
 exports.getWeek = (req, res) => {
@@ -56,7 +30,8 @@ exports.getWeek = (req, res) => {
 };
 
 exports.postWeek = (req, res) => {
-  const { week_id, video_progress_id, material_id_arr, assignment_id_arr, comment_id_arr, week_title, week_date, video_file_path } = req.body;
+  const { week_id, video_progress_id, material_id_arr, assignment_id_arr, comment_id_arr, week_title, week_date, video_file_path } =
+    req.body;
 
   // var programString = extractArray(programArr);
 
@@ -109,4 +84,96 @@ exports.postWeek = (req, res) => {
   //     }
   //   );
   // })();
+};
+
+exports.postAssignment = (req, res) => {
+  const { weekId, title, description, filePath, dueDate } = req.body;
+
+  // console.log(weekId, title, description, filePath, dueDate);
+  
+  let filepathDB = '';
+  let filepathValue = '';
+
+  if (filePath) {
+    filepathDB = ',file_path';
+    filepathValue = `, '${filePath}'`;
+  }
+  // console.log('filepathDB: ', filepathDB);
+  // console.log('filepathValue: ', filepathValue);
+
+  // console.log(
+  //   `INSERT INTO assignment(assignment_title,description${filepathDB},due_date) VALUES ('${title}', '${description}'${filepathValue}, '${dueDate}');`
+  // );
+
+  pg.query(`SELECT * FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    // console.log('select query:');
+    // console.log(result.rows);
+
+    if (result.rows.length !== 0) {
+      res.json({
+        status: 'fail',
+        message: 'assignment with the given title already exists in database',
+      });
+      return;
+    } else {
+      pg.query(
+        `INSERT INTO assignment(assignment_title,description${filepathDB},due_date) VALUES ('${title}', '${description}'${filepathValue}, '${dueDate}');`,
+        (err, result) => {
+          if (err) {
+            // console.log('error in main query');
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          } else {// now insert this assignment into week table
+            pg.query(`SELECT assignment_id FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
+              if (err) {
+                res.json({
+                  status: 'error',
+                  message: err.message,
+                });
+                return;
+              }
+              // console.log('select query:');
+              // console.log(result.rows);
+              const assignmentId = result.rows[0].assignment_id;
+              console.log('assignmentId: ', assignmentId);
+
+              pg.query(
+                `UPDATE week SET assignment_id_arr = array_append(assignment_id_arr, ${assignmentId}) WHERE week_id = ${weekId};`,
+                (err, result) => {
+                  if (err) {
+                    res.json({
+                      status: 'error',
+                      message: err.message,
+                    });
+                    return;
+                  }
+                  res.json({
+                    status: 'success',
+                    message: 'successfully create a new assignment and insert into week table',
+                  });
+                }
+              );
+              
+            });
+
+          }
+          
+          // res.json({
+          //   status: 'success',
+          //   message: 'successfully create a new assignment in database',
+          // });
+        }
+      );
+    }
+  });
 };
