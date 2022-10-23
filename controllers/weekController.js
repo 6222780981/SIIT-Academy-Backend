@@ -20,6 +20,7 @@ exports.getWeek = (req, res) => {
     }
 
     console.log(resultArr);
+
     res.json({
       status: 'success',
       data: {
@@ -29,10 +30,49 @@ exports.getWeek = (req, res) => {
   });
 };
 
-exports.postWeek = (req, res) => {
-  const { week_id, video_progress_id, material_id_arr, assignment_id_arr, comment_id_arr, week_title, week_date, video_file_path } =
-    req.body;
+exports.postWeek = async (req, res) => {
+  const { courseId, weekTitle, weekDate, video_file_path } = req.body;
 
+  await pg.query('SELECT course_id FROM course WHERE course_id = $1;', [courseId], (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    } else if (result.rows.length === 0) {
+      //cannot find course id in database
+      res.json({
+        status: 'fail',
+        message: 'the given course id does not exist in database',
+      });
+      return;
+    }
+  });
+  console.log(video_file_path);
+  let column = 'week_title, week_date';
+  let valueText = `'${weekTitle}', '${weekDate}'`;
+  console.log(column);
+  if (video_file_path) {
+    console.log('video_file_path');
+    valueText += `, '${video_file_path}'`;
+    // file_path = 'week_title, week_date, video_file_path ) VALUES ($2, $3, $4);';
+    column = 'week_title, week_date, video_file_path';
+  }
+
+  console.log(`INSERT INTO week (${column}) VALUES (${valueText})`);
+  await pg.query(`INSERT INTO week (${column}) VALUES (${valueText})`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    res.json({
+      status: 'success',
+    });
+  });
   // var programString = extractArray(programArr);
 
   // (async () => {

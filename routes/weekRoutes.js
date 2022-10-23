@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.route('/').get(weekController.getWeek);
 router.route('/assignment/').post(weekController.postAssignment);
+router.route('/').post(weekController.postWeek);
 
 module.exports = router;
