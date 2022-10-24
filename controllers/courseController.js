@@ -246,3 +246,62 @@ exports.patchStudent = (req, res) => {
     });
   })();
 };
+
+exports.postAnnouncement = (req, res) => {
+  const { courseId, announcement_date, content, filePath } = req.body;
+
+  let filepathDB = '';
+  let filepathValue = '';
+
+  if (filePath) {
+    filepathDB = ',file_path';
+    filepathValue = `, '${filePath}'`;
+  }
+
+  pg.query(
+    `INSERT INTO announcement(announcement_date, content${filepathDB}) VALUES ('${announcement_date}', '${content}'${filepathValue});`,
+    (err, result) => {
+      if (err) {
+        // console.log('error inside insert into announcement');
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      } else {
+        pg.query(
+          `SELECT announcement_id FROM announcement WHERE announcement_date = '${announcement_date}' AND content = '${content}';`,
+          (err, result) => {
+            if (err) {
+              // console.log('error inside select announcement_id');
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            } else {
+              const announcementId = result.rows[0].announcement_id;
+              pg.query(
+                `UPDATE course SET announcement_id_arr = array_append(announcement_id_arr, ${announcementId}) WHERE course_id = '${courseId}';`,
+                (err, result) => {
+                  if (err) {
+                    // console.log('error inside update course');
+                    res.json({
+                      status: 'error',
+                      message: err.message,
+                    });
+                    return;
+                  }
+                  res.json({
+                    status: 'success',
+                    message: 'successfully create new announcement and add to course',
+                  });
+                }
+              );
+            }
+          }
+        );
+      }
+    }
+  );
+};
