@@ -248,7 +248,7 @@ exports.patchStudent = (req, res) => {
 };
 
 exports.postAnnouncement = (req, res) => {
-  const { courseId, announcement_date, content, filePath } = req.body;
+  const { courseId, announcementDate, content, filePath } = req.body;
 
   let filepathDB = '';
   let filepathValue = '';
@@ -259,7 +259,7 @@ exports.postAnnouncement = (req, res) => {
   }
 
   pg.query(
-    `INSERT INTO announcement(announcement_date, content${filepathDB}) VALUES ('${announcement_date}', '${content}'${filepathValue});`,
+    `INSERT INTO announcement(announcement_date, content${filepathDB}) VALUES ('${announcementDate}', '${content}'${filepathValue});`,
     (err, result) => {
       if (err) {
         // console.log('error inside insert into announcement');
@@ -270,7 +270,7 @@ exports.postAnnouncement = (req, res) => {
         return;
       } else {
         pg.query(
-          `SELECT announcement_id FROM announcement WHERE announcement_date = '${announcement_date}' AND content = '${content}';`,
+          `SELECT announcement_id FROM announcement WHERE announcement_date = '${announcementDate}' AND content = '${content}';`,
           (err, result) => {
             if (err) {
               // console.log('error inside select announcement_id');
