@@ -8,4 +8,5 @@ router.route('/').post(courseController.postCourse);
 router.route('/').get(courseController.getCourse);
 router.route('/').delete(courseController.deleteCourse);
 router.route('/student/').patch(courseController.patchStudent);
+router.route('/announcement/').post(courseController.postAnnouncement);
 module.exports = router;

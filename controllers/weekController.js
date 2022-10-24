@@ -185,12 +185,6 @@ exports.postAssignment = (req, res) => {
     filepathDB = ',file_path';
     filepathValue = `, '${filePath}'`;
   }
-  // console.log('filepathDB: ', filepathDB);
-  // console.log('filepathValue: ', filepathValue);
-
-  // console.log(
-  //   `INSERT INTO assignment(assignment_title,description${filepathDB},due_date) VALUES ('${title}', '${description}'${filepathValue}, '${dueDate}');`
-  // );
 
   pg.query(`SELECT * FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
     if (err) {
@@ -221,6 +215,7 @@ exports.postAssignment = (req, res) => {
             });
             return;
           } else {
+            
             // now insert this assignment into week table
             pg.query(`SELECT assignment_id FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
               if (err) {
@@ -253,13 +248,74 @@ exports.postAssignment = (req, res) => {
               );
             });
           }
-
-          // res.json({
-          //   status: 'success',
-          //   message: 'successfully create a new assignment in database',
-          // });
         }
       );
     }
   });
+};
+
+exports.postMaterial = (req, res) => {
+  const { weekId, materialFilePathArr } = req.body;
+  console.log('weekId: ', weekId);
+  console.log('materialFilePathArr: ', materialFilePathArr);
+
+  for (let i = 0; i < materialFilePathArr.length; i++) {
+    console.log('materialFilePathArr[i]: ', materialFilePathArr[i]);
+    pg.query(`SELECT * FROM material WHERE material_file_path = '${materialFilePathArr[i]}';`, (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+
+      if (result.rows.length !== 0) {
+        res.json({
+          status: 'fail',
+          message: 'material with the given file path already exists in database, it is index ' + i,
+        });
+        return;
+      } else {
+        pg.query(`INSERT INTO material(material_file_path) VALUES ('${materialFilePathArr[i]}');`, (err, result) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+          pg.query(`SELECT material_id FROM material WHERE material_file_path = '${materialFilePathArr[i]}';`, (err, result) => {
+            if (err) {
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            } else {
+              const materialId = result.rows[0].material_id;
+              console.log('materialId: ', materialId);
+
+              pg.query(
+                `UPDATE week SET material_id_arr = array_append(material_id_arr, ${materialId}) WHERE week_id = ${weekId};`,
+                (err, result) => {
+                  if (err) {
+                    res.json({
+                      status: 'error',
+                      message: err.message,
+                    });
+                    return;
+                  }
+                  res.json({
+                    status: 'success',
+                    message: 'successfully create a new material and insert into week table',
+                  });
+                }
+              ); //END UPDATE week
+            } //else of material_id
+          }); //END SELECT material_id
+        }); //END INSERT INTO material
+      } //end else check duplicate material
+    }); //END SELECT QUERY check duplicate material_file_path
+  }
 };
