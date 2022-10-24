@@ -1,33 +1,37 @@
 const pg = require('../postgres');
 
 exports.getWeek = (req, res) => {
-  pg.query(`SELECT * FROM week ORDER BY week_id ASC;`, (err, result) => {
-    if (err) {
+  const { courseId } = req.query;
+
+  pg.query(
+    `SELECT week.* FROM week, course WHERE course.course_id = '${courseId}' AND week.week_id = ANY(course.week_id_arr);`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      const resultArr = result.rows; // postgres returns array of rows
+      if (resultArr.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'No week has been added',
+        });
+        return;
+      }
+
+      console.log(resultArr);
+
       res.json({
-        status: 'error',
-        message: err.message,
+        status: 'success',
+        data: {
+          resultArr,
+        },
       });
-      return;
     }
-
-    const resultArr = result.rows; // postgres returns array of rows
-    if (resultArr.length === 0) {
-      res.json({
-        status: 'fail',
-        message: 'No week has been added',
-      });
-      return;
-    }
-
-    console.log(resultArr);
-
-    res.json({
-      status: 'success',
-      data: {
-        weekId: resultArr[0].week_id,
-      },
-    });
-  });
+  );
 };
 
 exports.postWeek = async (req, res) => {
@@ -69,68 +73,111 @@ exports.postWeek = async (req, res) => {
       });
       return;
     }
-    res.json({
-      status: 'success',
+    // res.json({
+    //   status: 'success'
+    //   // message: result,
+    // });
+    pg.query('SELECT * FROM week WHERE week_title = $1 ORDER BY week_id DESC LIMIT 1;', [weekTitle], (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      const weekId = result.rows[0].week_id;
+      console.log(weekId);
+
+      pg.query(`UPDATE course SET week_id_arr = array_append(week_id_arr, ${weekId}) WHERE course_id = '${courseId}';`, (err, result) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+        res.json({
+          status: 'success',
+          message: 'successfully create a new week in database',
+        });
+      });
     });
   });
-  // var programString = extractArray(programArr);
+};
 
-  // (async () => {
-  //   var courseCheck = await pg.query(`SELECT course_id FROM course WHERE course_id = '${courseId}';`).then((result) => result.rows);
-  //   var usernameCheck = await pg
-  //     .query(`SELECT user_id FROM member WHERE username = '${teacherUsername}' AND role = 'teacher';`)
-  //     .then((result) => result.rows);
-
-  //   if ((await courseCheck.length) !== 0) {
-  //     //courseId already existing in the database
-  //     res.json({
-  //       status: 'fail',
-  //       message: 'course with the given id already exists in database',
-  //     });
-  //     return;
-  //   } else {
-  //     // console.log('course can be created, no existing course id matched');
-  //   }
-
-  //   if ((await usernameCheck.length) === 0) {
-  //     //teacherUsername does not exist
-  //     res.json({
-  //       status: 'fail',
-  //       message: 'teacher with the given username does not exists in database',
-  //     });
-  //     return;
-  //   } else {
-  //     // console.log('course can be created, teacherUsername is existing');
-  //     // console.log(usernameCheck[0].user_id);
-  //     var userIdKeeper = usernameCheck[0].user_id;
-  //   }
-
-  //   await pg.query(
-  //     `INSERT INTO course(course_id,course_name,teacher_id,program_arr,year_arr) VALUES('${courseId}','${courseName}',${userIdKeeper},ARRAY[${programString}],ARRAY[${yearArr}]);`,
-  //     (err, result) => {
-  //       if (err) {
-  //         // console.log('error in main query');
-  //         res.json({
-  //           status: 'error',
-  //           message: err.message,
-  //         });
-  //         return;
-  //       }
-
-  //       res.json({
-  //         status: 'success',
-  //         message: 'insertion successful',
-  //       });
-  //     }
-  //   );
-  // })();
+//delete week
+exports.deleteWeek = async (req, res) => {
+  const { weekId, courseId } = req.body;
+  await pg.query('SELECT week_id FROM week WHERE week_id = $1;', [weekId], (err, result) => {
+    if (err) {
+      console.log('error at week find');
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    } else if (result.rows.length === 0) {
+      //cannot find week id in database
+      res.json({
+        status: 'fail',
+        message: 'the given week id does not exist in database',
+      });
+      return;
+    } else {
+      pg.query(`SELECT course_id FROM course WHERE course_id = '${courseId}';`, (err, result) => {
+        if (err) {
+          console.log('error at course find');
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        } else if (result.rows.length === 0) {
+          //cannot find course id in database
+          res.json({
+            status: 'fail',
+            message: 'the given course id does not exist in database',
+          });
+          return;
+        } else {
+          pg.query(
+            `UPDATE course SET week_id_arr = array_remove(week_id_arr, ${weekId}) WHERE course_id = '${courseId}';`,
+            (err, result) => {
+              if (err) {
+                console.log('error at course update');
+                res.json({
+                  status: 'error',
+                  message: err.message,
+                });
+                return;
+              }
+              pg.query(`DELETE FROM week WHERE week_id = ${weekId};`, (err, result) => {
+                if (err) {
+                  console.log('error at week delete');
+                  res.json({
+                    status: 'error',
+                    message: err.message,
+                  });
+                  return;
+                }
+                res.json({
+                  status: 'success',
+                  message: 'successfully delete a week in database',
+                });
+              });
+            }
+          );
+        }
+      });
+    }
+  });
 };
 
 exports.postAssignment = (req, res) => {
   const { weekId, title, description, filePath, dueDate } = req.body;
 
   // console.log(weekId, title, description, filePath, dueDate);
-  
+
   let filepathDB = '';
   let filepathValue = '';
 
@@ -173,7 +220,8 @@ exports.postAssignment = (req, res) => {
               message: err.message,
             });
             return;
-          } else {// now insert this assignment into week table
+          } else {
+            // now insert this assignment into week table
             pg.query(`SELECT assignment_id FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
               if (err) {
                 res.json({
@@ -203,11 +251,9 @@ exports.postAssignment = (req, res) => {
                   });
                 }
               );
-              
             });
-
           }
-          
+
           // res.json({
           //   status: 'success',
           //   message: 'successfully create a new assignment in database',
