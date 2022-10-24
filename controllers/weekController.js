@@ -27,7 +27,7 @@ exports.getWeek = (req, res) => {
       res.json({
         status: 'success',
         data: {
-          resultArr,
+          weekArr: resultArr,
         },
       });
     }
@@ -215,7 +215,6 @@ exports.postAssignment = (req, res) => {
             });
             return;
           } else {
-            
             // now insert this assignment into week table
             pg.query(`SELECT assignment_id FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
               if (err) {
