@@ -1,7 +1,7 @@
 const pg = require('../postgres');
 
 exports.getWeek = (req, res) => {
-  const { courseId } = req.query;
+  const { course_id: courseId } = req.query;
 
   pg.query(
     `SELECT week.* FROM week, course WHERE course.course_id = '${courseId}' AND week.week_id = ANY(course.week_id_arr);`,
@@ -101,6 +101,24 @@ exports.postWeek = async (req, res) => {
           message: 'successfully create a new week in database',
         });
       });
+    });
+  });
+};
+
+exports.patchWeek = (req, res) => {
+  const { weekId, videoFilePath } = req.body;
+
+  pg.query(`UPDATE week SET video_file_path = '${videoFilePath}' WHERE week_id = ${weekId};`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    res.json({
+      status: 'success',
+      message: 'successfully update video file path',
     });
   });
 };
