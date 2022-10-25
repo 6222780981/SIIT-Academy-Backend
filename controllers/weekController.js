@@ -4,7 +4,7 @@ exports.getWeek = (req, res) => {
   const { course_id: courseId } = req.query;
 
   pg.query(
-    `SELECT week.* FROM week, course WHERE course.course_id = '${courseId}' AND week.week_id = ANY(course.week_id_arr);`,
+    `SELECT week.* FROM week, course WHERE course.course_id = '${courseId}' AND week.week_id = ANY(course.week_id_arr) ORDER BY week.week_id;`,
     (err, result) => {
       if (err) {
         res.json({
@@ -35,7 +35,7 @@ exports.getWeek = (req, res) => {
 };
 
 exports.postWeek = async (req, res) => {
-  const { courseId, weekTitle, weekDate, video_file_path } = req.body;
+  const { courseId, weekTitle, weekDate, videoFilePath } = req.body;
 
   await pg.query('SELECT course_id FROM course WHERE course_id = $1;', [courseId], (err, result) => {
     if (err) {
@@ -53,13 +53,13 @@ exports.postWeek = async (req, res) => {
       return;
     }
   });
-  console.log(video_file_path);
+  console.log(videoFilePath);
   let column = 'week_title, week_date';
   let valueText = `'${weekTitle}', '${weekDate}'`;
   console.log(column);
-  if (video_file_path) {
-    console.log('video_file_path');
-    valueText += `, '${video_file_path}'`;
+  if (videoFilePath) {
+    console.log('videoFilePath');
+    valueText += `, '${videoFilePath}'`;
     // file_path = 'week_title, week_date, video_file_path ) VALUES ($2, $3, $4);';
     column = 'week_title, week_date, video_file_path';
   }
