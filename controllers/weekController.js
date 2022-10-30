@@ -336,3 +336,37 @@ exports.postMaterial = (req, res) => {
     }); //END SELECT QUERY check duplicate material_file_path
   }
 };
+
+exports.getSubmission = (req, res) => {
+  const { userId: userId, assignmentId: assignmentId } = req.query;
+  pg.query(
+    `SELECT submission_file.* FROM submission_file, assignment_submission WHERE assignment_submission.user_id = '${userId}' AND assignment_submission.assignment_id = '${assignmentId}' AND submission_file.file_id = assignment_submission.file_id;`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      const resultArr = result.rows; // postgres returns array of rows
+      if (resultArr.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'no submission found from the given id',
+        });
+        return;
+      }
+
+      console.log(resultArr);
+
+      res.json({
+        status: 'success',
+        data: {
+          submissionArr: resultArr,
+        },
+        message: 'successfully returned submission with the given id',
+      }); // end res.json
+    } //end callback
+  ); //END  SELECT QUERY
+};
