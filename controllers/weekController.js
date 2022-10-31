@@ -261,14 +261,14 @@ exports.postAssignment = (req, res) => {
                     status: 'success',
                     message: 'successfully create a new assignment and insert into week table',
                   });
-                }
-              );
-            });
-          }
+                } //end of week update query
+              ); //end of week update query
+            }); // end of select query
+          } // end of else
         }
-      );
-    }
-  });
+      ); //end of INSERT query
+    } //end of else
+  }); //END OF SELECT QUERY
 };
 
 exports.postMaterial = (req, res) => {
@@ -369,4 +369,139 @@ exports.getSubmission = (req, res) => {
       }); // end res.json
     } //end callback
   ); //END  SELECT QUERY
+};
+
+exports.postSubmission = (req, res) => {
+  const { userId, assignmentId, filePath, submissionDate } = req.body;
+  pg.query(`SELECT * FROM assignment WHERE assignment_id = '${assignmentId}';`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    if (result.rows.length === 0) {
+      res.json({
+        status: 'fail',
+        message: 'no assignment found with the given id',
+      });
+      return;
+    }
+    pg.query(`SELECT * FROM member WHERE user_id = '${userId}';`, (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      if (result.rows.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'no member found with the given id',
+        });
+        return;
+      }
+      pg.query(`SELECT * FROM submission_file WHERE file_path = '${filePath}';`, (err, result) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+        if (result.rows.length !== 0) {
+          res.json({
+            status: 'fail',
+            message: 'submission with the given file path already exists in database',
+          });
+          return;
+        } else {
+          pg.query(`INSERT INTO submission_file(file_path, submit_date) VALUES ('${filePath}', '${submissionDate}');`, (err, result) => {
+            if (err) {
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            }
+            pg.query(`SELECT file_id FROM submission_file WHERE file_path = '${filePath}';`, (err, result) => {
+              if (err) {
+                res.json({
+                  status: 'error',
+                  message: err.message,
+                });
+                return;
+              }
+              const fileId = result.rows[0].file_id;
+              pg.query(
+                `INSERT INTO assignment_submission(user_id, assignment_id, file_id) VALUES ('${userId}', '${assignmentId}', '${fileId}');`,
+                (err, result) => {
+                  if (err) {
+                    res.json({
+                      status: 'error',
+                      message: err.message,
+                    });
+                    return;
+                  }
+                  res.json({
+                    status: 'success',
+                    message: 'successfully create a new submission',
+                  });
+                  return;
+                }
+              ); //end of assignment_submission
+            }); //end of INSERT submission_file
+          }); //end of member query
+        } //end of else
+      }); //end of submission_file query
+    }); //END SELECT QUERY
+  }); //end of assignment query
+};
+
+exports.deleteSubmission = (req, res) => {
+  const { userId, assignmentId } = req.body;
+  pg.query(
+    `SELECT file_id FROM assignment_submission WHERE user_id = '${userId}' AND assignment_id = '${assignmentId}';`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      if (result.rows.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'no submission found with the given id and assignment id',
+        });
+        return;
+      }
+      const fileId = result.rows[0].file_id;
+      pg.query(`DELETE FROM assignment_submission WHERE user_id = '${userId}' AND assignment_id = '${assignmentId}';`, (err, result) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+        pg.query(`DELETE FROM submission_file WHERE file_id = '${fileId}';`, (err, result) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+          res.json({
+            status: 'success',
+            message: 'successfully deleted the submission',
+          });
+        }); //end of DELETE submission_file
+      }); //end of DELETE assignment_submission
+    } //end of callback
+  ); //END DELETE QUERY
 };

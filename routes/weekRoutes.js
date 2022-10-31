@@ -11,5 +11,7 @@ router.route('/').patch(weekController.patchWeek);
 router.route('/assignment/').post(weekController.postAssignment);
 router.route('/material/').post(weekController.postMaterial);
 router.route('/assignment/submission/').get(weekController.getSubmission);
+router.route('/assignment/submission/').post(weekController.postSubmission);
+router.route('/assignment/submission/').delete(weekController.deleteSubmission);
 
 module.exports = router;
