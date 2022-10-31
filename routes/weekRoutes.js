@@ -8,6 +8,7 @@ router.route('/').get(weekController.getWeek);
 router.route('/').post(weekController.postWeek);
 router.route('/').delete(weekController.deleteWeek);
 router.route('/').patch(weekController.patchWeek);
+router.route('/assignment/').get(weekController.getAssignment);
 router.route('/assignment/').post(weekController.postAssignment);
 router.route('/material/').post(weekController.postMaterial);
 router.route('/assignment/submission/').get(weekController.getSubmission);

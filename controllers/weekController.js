@@ -157,35 +157,57 @@ exports.deleteWeek = async (req, res) => {
             message: 'the given course id does not exist in database',
           });
           return;
-        } else {
-          pg.query(
-            `UPDATE course SET week_id_arr = array_remove(week_id_arr, ${weekId}) WHERE course_id = '${courseId}';`,
-            (err, result) => {
+        }
+        pg.query(`UPDATE course SET week_id_arr = array_remove(week_id_arr, ${weekId}) WHERE course_id = '${courseId}';`, (err, result) => {
+          if (err) {
+            console.log('error at course update');
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+          pg.query(`SELECT assignment_id_arr FROM week WHERE week_id = ${weekId};`, (err, result) => {
+            if (err) {
+              console.log('error at assignment find');
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            }
+            const assignmentIdArr = result.rows;
+            console.log(assignmentIdArr);
+            if (assignmentIdArr.length !== 0) {
+              for (let i = 0; i < assignmentIdArr.length; i++) {
+                pg.query(`DELETE FROM assignment WHERE assignment_id = ${assignmentIdArr[i].assignment_id_arr};`, (err, result) => {
+                  if (err) {
+                    console.log('error at assignment delete');
+                    res.json({
+                      status: 'error',
+                      message: err.message,
+                    });
+                    return;
+                  }
+                });
+              }
+            }
+            pg.query(`DELETE FROM week WHERE week_id = ${weekId};`, (err, result) => {
               if (err) {
-                console.log('error at course update');
+                console.log('error at week delete');
                 res.json({
                   status: 'error',
                   message: err.message,
                 });
                 return;
               }
-              pg.query(`DELETE FROM week WHERE week_id = ${weekId};`, (err, result) => {
-                if (err) {
-                  console.log('error at week delete');
-                  res.json({
-                    status: 'error',
-                    message: err.message,
-                  });
-                  return;
-                }
-                res.json({
-                  status: 'success',
-                  message: 'successfully delete a week in database',
-                });
+              res.json({
+                status: 'success',
+                message: 'successfully delete a week in database',
               });
-            }
-          );
-        }
+            });
+          });
+        });
       });
     }
   });
@@ -269,6 +291,27 @@ exports.postAssignment = (req, res) => {
       ); //end of INSERT query
     } //end of else
   }); //END OF SELECT QUERY
+};
+
+exports.getAssignment = (req, res) => {
+  const { weekId: week_id } = req.query;
+  pg.query(
+    `SELECT assignment.* FROM week, assignment WHERE week_id = '${week_id}' AND assignment.assignment_id = ANY(week.assignment_id_arr) ORDER BY assignment_id;`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      res.json({
+        status: 'success',
+        message: 'successfully get assignment',
+        data: result.rows,
+      });
+    }
+  );
 };
 
 exports.postMaterial = (req, res) => {
