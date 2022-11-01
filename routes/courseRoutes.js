@@ -9,4 +9,5 @@ router.route('/').get(courseController.getCourse);
 router.route('/').delete(courseController.deleteCourse);
 router.route('/student/').patch(courseController.patchStudent);
 router.route('/announcement/').post(courseController.postAnnouncement);
+router.route('/announcement/').get(courseController.getAnnouncement);
 module.exports = router;

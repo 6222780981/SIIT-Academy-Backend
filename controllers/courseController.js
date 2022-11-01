@@ -305,3 +305,40 @@ exports.postAnnouncement = (req, res) => {
     }
   );
 };
+
+exports.getAnnouncement = (req, res) => {
+  const { courseId } = req.query;
+  pg.query(`SELECT announcement_id_arr FROM course WHERE course_id = '${courseId}';`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+
+    if (result.rows.length === 0) {
+      res.json({
+        status: 'success',
+        message: 'no announcement in this course',
+      });
+      return;
+    } else {
+      const announcementIdArr = result.rows[0].announcement_id_arr;
+      var announcementArr = [];
+      (async () => {
+        for (let i = 0; i < announcementIdArr.length; i++) {
+          var announcement = await pg
+            .query(`SELECT * FROM announcement WHERE announcement_id = ${announcementIdArr[i]};`)
+            .then((result) => result.rows);
+          announcementArr.push(announcement[0]);
+        }
+        res.json({
+          status: 'success',
+          message: 'successfully get announcement list',
+          data: announcementArr,
+        });
+      })();
+    }
+  });
+};
