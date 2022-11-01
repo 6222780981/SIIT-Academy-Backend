@@ -636,29 +636,29 @@ exports.patchVideoProgress = (req, res) => {
   });
 };
 
-// exports.getVideoProgress = (req, res) => {
-//   const { userId, weekId } = req.body;
+exports.getVideoProgress = (req, res) => {
+  const { userId, weekId } = req.query;
 
-//   pg.query(`SELECT * from video_progress where week_id = ${weekId} ;`, (err, result) => {
-//     if (err) {
-//       res.json({
-//         status: 'error',
-//         message: err.message,
-//       });
-//       return;
-//     }
-//     if (result.rows.length === 0) {
-//       res.json({
-//         status: 'fail',
-//         message: 'no video progress found with the given id',
-//       });
-//       return;
-//     }
-//     res.json({
-//       status: 'success',
-//       message: 'successfully retrieved the video progress',
-//       data: result.rows[0],
-//     });
-//     return;
-//   });
-// }
+  pg.query(`SELECT * from video_progress where week_id = ${weekId} and user_id = ${userId};`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    if (result.rows.length === 0) {
+      res.json({
+        status: 'fail',
+        message: 'no video progress found with the given id',
+      });
+      return;
+    }
+    res.json({
+      status: 'success',
+      message: 'successfully retrieved the video progress',
+      data: result.rows[0],
+    });
+    return;
+  });
+};
