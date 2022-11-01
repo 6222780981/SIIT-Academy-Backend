@@ -15,5 +15,6 @@ router.route('/material/').get(weekController.getMaterial);
 router.route('/assignment/submission/').get(weekController.getSubmission);
 router.route('/assignment/submission/').post(weekController.postSubmission);
 router.route('/assignment/submission/').delete(weekController.deleteSubmission);
+router.route('/video-progress/').patch(weekController.patchVideoProgress);
 
 module.exports = router;

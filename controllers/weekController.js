@@ -585,3 +585,53 @@ exports.deleteSubmission = (req, res) => {
     } //end of callback
   ); //END DELETE QUERY
 };
+
+exports.patchVideoProgress = (req, res) => {
+  const { userId, weekId, videoProgress } = req.body;
+
+  pg.query(`SELECT * from video_progress where week_id = ${weekId} ;`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    if (result.rows.length === 0) {
+      //need to create a new row
+      pg.query(
+        `INSERT INTO video_progress (user_id, week_id, progress_second) VALUES (${userId}, ${weekId}, '${videoProgress}');`,
+        (err, result) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+          res.json({
+            status: 'success',
+            message: 'successfully created a new video progress',
+          });
+          return;
+        }
+      );
+    } else {
+      //need to update the existing row
+      pg.query(`UPDATE video_progress SET progress_second = '${videoProgress}' WHERE week_id = ${weekId} ;`, (err, result) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+        res.json({
+          status: 'success',
+          message: 'successfully updated the video progress',
+        });
+        return;
+      });
+    }
+  });
+};
