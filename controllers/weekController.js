@@ -387,6 +387,36 @@ exports.postMaterial = (req, res) => {
   }); //END SELECT QUERY check duplicate material_file_path
 };
 
+exports.getMaterial = (req, res) => {
+  const { weekId: week_id } = req.query;
+  pg.query(
+    `SELECT material.* FROM week, material WHERE week_id = ${week_id} AND material.material_id = ANY(week.material_id_arr);`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+
+      if (result.rows.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'material with the given week id does not exist in database',
+        });
+        return;
+      }
+
+      res.json({
+        status: 'success',
+        message: 'successfully get material',
+        data: result.rows,
+      });
+    }
+  );
+};
+
 exports.getSubmission = (req, res) => {
   const { userId: userId, assignmentId: assignmentId } = req.query;
   pg.query(
