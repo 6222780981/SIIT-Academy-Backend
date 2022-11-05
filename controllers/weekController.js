@@ -417,6 +417,55 @@ exports.getMaterial = (req, res) => {
   );
 };
 
+exports.deleteMaterial = (req, res) => {
+  const { materialId, weekId } = req.body;
+  console.log('materialId: ', materialId);
+  console.log('weekId: ', weekId);
+
+  pg.query(`SELECT * FROM material WHERE material_id = ${materialId};`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+
+    if (result.rows.length === 0) {
+      res.json({
+        status: 'fail',
+        message: 'material with the given material id does not exist in database',
+      });
+      return;
+    } else {
+        pg.query(`UPDATE week SET material_id_arr = array_remove(material_id_arr,${materialId}) where week_id = ${weekId};`, (err, result) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+          pg.query(`DELETE FROM material WHERE material_id = ${materialId};`, (err, result) => {
+            if (err) {
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            }
+            res.json({
+              status: 'success',
+              message: 'successfully delete material',
+            });
+          });
+        });
+    }
+  });
+};
+
+
+
 exports.getSubmission = (req, res) => {
   const { userId: userId, assignmentId: assignmentId } = req.query;
   pg.query(
