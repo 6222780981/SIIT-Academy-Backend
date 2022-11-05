@@ -342,3 +342,49 @@ exports.getAnnouncement = (req, res) => {
     }
   });
 };
+
+exports.deleteAnnouncement = (req, res) => {
+  const { announcementId, courseId } = req.body;
+  pg.query(`SELECT * FROM announcement WHERE announcement_id = ${announcementId};`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    if (result.rows.length === 0) {
+      res.json({
+        status: 'fail',
+        message: 'announcement does not exist in database',
+      });
+      return;
+    } else {
+      pg.query(
+        `UPDATE course SET announcement_id_arr = array_remove(announcement_id_arr, ${announcementId}) WHERE course_id = '${courseId}';`,
+        (err, result) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+          pg.query(`DELETE FROM announcement WHERE announcement_id = ${announcementId};`, (err, result) => {
+            if (err) {
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            }
+            res.json({
+              status: 'success',
+              message: 'successfully delete announcement',
+            });
+          });
+        }
+      );
+    }
+  });
+};
