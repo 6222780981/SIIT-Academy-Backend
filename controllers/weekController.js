@@ -314,6 +314,71 @@ exports.getAssignment = (req, res) => {
   );
 };
 
+exports.deleteAssignment = (req, res) => {
+  const { weekId, assignmentId } = req.body;
+  pg.query(`SELECT * FROM week WHERE week_id = ${weekId};`, (err, result) => {
+    if (err) {
+      res.json({
+        status: 'error',
+        message: err.message,
+      });
+      return;
+    }
+    if (result.rows.length === 0) {
+      res.json({
+        status: 'fail',
+        message: 'the given week id does not exist in database',
+      });
+      return;
+    } else {
+      pg.query(`SELECT * FROM assignment WHERE assignment_id = ${assignmentId};`, (err, result) => {
+        if (err) {
+          res.json({
+            status: 'error',
+            message: err.message,
+          });
+          return;
+        }
+        if (result.rows.length === 0) {
+          res.json({
+            status: 'fail',
+            message: 'the given assignment id does not exist in database',
+          });
+          return;
+        } else {
+          pg.query(`DELETE FROM assignment WHERE assignment_id = ${assignmentId};`, (err, result) => {
+            if (err) {
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            }
+            pg.query(
+              `UPDATE week SET assignment_id_arr = array_remove(assignment_id_arr, ${assignmentId}) WHERE week_id = ${weekId};`,
+              (err, result) => {
+                if (err) {
+                  res.json({
+                    status: 'error',
+                    message: err.message,
+                  });
+                  return;
+                }
+                res.json({
+                  status: 'success',
+                  message: 'successfully delete assignment from database',
+                });
+              }
+            );
+          });
+        }
+      });
+    }
+  });
+};
+
+
+
 exports.postMaterial = (req, res) => {
   const { weekId, materialFilePathArr } = req.body;
   console.log('weekId: ', weekId);

@@ -10,6 +10,7 @@ router.route('/').delete(weekController.deleteWeek);
 router.route('/').patch(weekController.patchWeek);
 router.route('/assignment/').get(weekController.getAssignment);
 router.route('/assignment/').post(weekController.postAssignment);
+router.route('/assignment/').delete(weekController.deleteAssignment);
 router.route('/material/').post(weekController.postMaterial);
 router.route('/material/').get(weekController.getMaterial);
 router.route('/material/').delete(weekController.deleteMaterial);
