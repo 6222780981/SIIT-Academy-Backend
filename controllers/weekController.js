@@ -364,9 +364,34 @@ exports.deleteAssignment = (req, res) => {
                   });
                   return;
                 }
-                res.json({
-                  status: 'success',
-                  message: 'successfully delete assignment from database',
+                pg.query(`SELECT * FROM assignment_submission WHERE assignment_id = ${assignmentId};`, (err, result) => {
+                  if (err) {
+                    res.json({
+                      status: 'error',
+                      message: err.message,
+                    });
+                    return;
+                  }
+                  if (result.rows.length !== 0) {
+                    pg.query(`DELETE FROM assignment_submission WHERE assignment_id = ${assignmentId};`, (err, result) => {
+                      if (err) {
+                        res.json({
+                          status: 'error',
+                          message: err.message,
+                        });
+                        return;
+                      }
+                      res.json({
+                        status: 'success',
+                        message: 'successfully delete assignment and its submission',
+                      });
+                    });
+                  } else {
+                    res.json({
+                      status: 'success',
+                      message: 'successfully delete assignment',
+                    });
+                  }
                 });
               }
             );
@@ -376,8 +401,6 @@ exports.deleteAssignment = (req, res) => {
     }
   });
 };
-
-
 
 exports.postMaterial = (req, res) => {
   const { weekId, materialFilePathArr } = req.body;
@@ -503,7 +526,9 @@ exports.deleteMaterial = (req, res) => {
       });
       return;
     } else {
-        pg.query(`UPDATE week SET material_id_arr = array_remove(material_id_arr,${materialId}) where week_id = ${weekId};`, (err, result) => {
+      pg.query(
+        `UPDATE week SET material_id_arr = array_remove(material_id_arr,${materialId}) where week_id = ${weekId};`,
+        (err, result) => {
           if (err) {
             res.json({
               status: 'error',
@@ -524,12 +549,11 @@ exports.deleteMaterial = (req, res) => {
               message: 'successfully delete material',
             });
           });
-        });
+        }
+      );
     }
   });
 };
-
-
 
 exports.getSubmission = (req, res) => {
   const { userId: userId, assignmentId: assignmentId } = req.query;
@@ -776,4 +800,3 @@ exports.getVideoProgress = (req, res) => {
     return;
   });
 };
-
