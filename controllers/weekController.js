@@ -126,7 +126,7 @@ exports.patchWeek = (req, res) => {
 //delete week
 exports.deleteWeek = async (req, res) => {
   const { weekId, courseId } = req.body;
-  await pg.query('SELECT week_id FROM week WHERE week_id = $1;', [weekId], (err, result) => {
+  await pg.query(`SELECT week_id FROM week WHERE week_id = ${weekId};`, (err, result) => {
     if (err) {
       console.log('error at week find');
       res.json({
@@ -178,9 +178,10 @@ exports.deleteWeek = async (req, res) => {
             }
             const assignmentIdArr = result.rows;
             console.log(assignmentIdArr);
-            if (assignmentIdArr.length !== 0) {
-              for (let i = 0; i < assignmentIdArr.length; i++) {
-                pg.query(`DELETE FROM assignment WHERE assignment_id = ${assignmentIdArr[i].assignment_id_arr};`, (err, result) => {
+            if (assignmentIdArr[0].assignment_id_arr.length !== 0) {
+              console.log(assignmentIdArr[0].assignment_id_arr);
+              for (let i = 0; i < assignmentIdArr[0].assignment_id_arr.length; i++) {
+                pg.query(`DELETE FROM assignment WHERE assignment_id = ${assignmentIdArr[0].assignment_id_arr[i]};`, (err, result) => {
                   if (err) {
                     console.log('error at assignment delete');
                     res.json({
@@ -225,71 +226,87 @@ exports.postAssignment = (req, res) => {
     filepathDB = ',file_path';
     filepathValue = `, '${filePath}'`;
   }
-
-  pg.query(`SELECT * FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
+  pg.query(`SELECT * FROM week WHERE week_id = ${weekId};`, (err, result) => {
     if (err) {
       res.json({
         status: 'error',
         message: err.message,
       });
       return;
-    }
-    // console.log('select query:');
-    // console.log(result.rows);
-
-    if (result.rows.length !== 0) {
+    } else if (result.rows.length === 0) {
+      //cannot find week id in database
       res.json({
         status: 'fail',
-        message: 'assignment with the given title already exists in database',
+        message: 'the given week id does not exist in database',
       });
       return;
-    } else {
-      pg.query(
-        `INSERT INTO assignment(assignment_title,description${filepathDB},due_date) VALUES ('${title}', '${description}'${filepathValue}, '${dueDate}');`,
-        (err, result) => {
-          if (err) {
-            // console.log('error in main query');
-            res.json({
-              status: 'error',
-              message: err.message,
-            });
-            return;
-          } else {
-            // now insert this assignment into week table
-            pg.query(`SELECT assignment_id FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
-              if (err) {
-                res.json({
-                  status: 'error',
-                  message: err.message,
-                });
-                return;
-              }
-              // console.log('select query:');
-              // console.log(result.rows);
-              const assignmentId = result.rows[0].assignment_id;
-              console.log('assignmentId: ', assignmentId);
+    }
 
-              pg.query(
-                `UPDATE week SET assignment_id_arr = array_append(assignment_id_arr, ${assignmentId}) WHERE week_id = ${weekId};`,
-                (err, result) => {
-                  if (err) {
-                    res.json({
-                      status: 'error',
-                      message: err.message,
-                    });
-                    return;
-                  }
+    pg.query(`SELECT * FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      // console.log('select query:');
+      // console.log(result.rows);
+
+      if (result.rows.length !== 0) {
+        res.json({
+          status: 'fail',
+          message: 'assignment with the given title already exists in database',
+        });
+        return;
+      } else {
+        pg.query(
+          `INSERT INTO assignment(assignment_title,description${filepathDB},due_date) VALUES ('${title}', '${description}'${filepathValue}, '${dueDate}');`,
+          (err, result) => {
+            if (err) {
+              // console.log('error in main query');
+              res.json({
+                status: 'error',
+                message: err.message,
+              });
+              return;
+            } else {
+              // now insert this assignment into week table
+              pg.query(`SELECT assignment_id FROM assignment WHERE assignment_title = '${title}';`, (err, result) => {
+                if (err) {
                   res.json({
-                    status: 'success',
-                    message: 'successfully create a new assignment and insert into week table',
+                    status: 'error',
+                    message: err.message,
                   });
-                } //end of week update query
-              ); //end of week update query
-            }); // end of select query
-          } // end of else
-        }
-      ); //end of INSERT query
-    } //end of else
+                  return;
+                }
+                // console.log('select query:');
+                // console.log(result.rows);
+                const assignmentId = result.rows[0].assignment_id;
+                console.log('assignmentId: ', assignmentId);
+
+                pg.query(
+                  `UPDATE week SET assignment_id_arr = array_append(assignment_id_arr, ${assignmentId}) WHERE week_id = ${weekId};`,
+                  (err, result) => {
+                    if (err) {
+                      res.json({
+                        status: 'error',
+                        message: err.message,
+                      });
+                      return;
+                    }
+                    res.json({
+                      status: 'success',
+                      message: 'successfully create a new assignment and insert into week table',
+                    });
+                  } //end of week update query
+                ); //end of week update query
+              }); // end of select query
+            } // end of else
+          }
+        ); //end of INSERT query
+      } //end of else
+    }); //end of SELECT query
   }); //END OF SELECT QUERY
 };
 
