@@ -99,7 +99,7 @@ exports.getCourse = (req, res) => {
   // console.log(where);
 
   pg.query(
-    `SELECT course.*, member.username FROM course INNER JOIN member ON course.teacher_id = member.user_id ${where} ORDER BY course_id;`,
+    `SELECT course.*, member.username, member.email FROM course INNER JOIN member ON course.teacher_id = member.user_id ${where} ORDER BY course_id;`,
     (err, result) => {
       if (err) {
         res.json({
