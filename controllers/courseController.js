@@ -209,16 +209,26 @@ exports.patchStudent = (req, res) => {
     }
 
     //check student duplicate
-    pg.query(`SELECT student_id_arr FROM course WHERE course_id ='${courseId}';`).then((row) => {
-      studentIdArray = row.rows[0].student_id_arr;
-      const found = studentIdArray.some((el) => el === userIdKeeper); // check duplicate email in course (should not be dup)
-      // console.log('----studentIdArray----');
-      // console.log(studentIdArray);
-      if (found) {
-        //student duplicate
+    // pg.query(`SELECT student_id_arr FROM course WHERE course_id ='${courseId}';`).then((row) => {
+    //   studentIdArray = row.rows[0].student_id_arr;
+    //   const found = studentIdArray.some((el) => el === userIdKeeper); // check duplicate email in course (should not be dup)
+    //   // console.log('----studentIdArray----');
+    //   // console.log(studentIdArray);
+    //   if (found) {
+    //     //student duplicate
+    //     res.json({
+    //       status: 'fail',
+    //       message: 'student with the given email already in the course',
+    //     });
+    //     return;
+    //   } else {
+
+    // clear old array and add new student
+    pg.query(`UPDATE course SET student_id_arr = default WHERE course_id = '${courseId}';`, (err, result) => {
+      if (err) {
         res.json({
-          status: 'fail',
-          message: 'student with the given email already in the course',
+          status: 'error',
+          message: err.message,
         });
         return;
       } else {
@@ -245,6 +255,7 @@ exports.patchStudent = (req, res) => {
       }
     });
   })();
+  // });
 };
 
 exports.postAnnouncement = (req, res) => {
