@@ -606,6 +606,46 @@ exports.getSubmission = (req, res) => {
   ); //END  SELECT QUERY
 };
 
+exports.getAllSubmission = (req, res) => {
+  const { assignmentId: assignmentId } = req.query;
+  pg.query(
+    `SELECT username, email, assignment_id, submission_file.file_id, file_path, submit_date 
+    FROM (SELECT * 
+      FROM member RIGHT JOIN assignment_submission 
+      ON member.user_id = assignment_submission.user_id 
+      WHERE assignment_submission.assignment_id = '${assignmentId}') as user_submission
+    LEFT JOIN submission_file 
+    ON user_submission.file_id = submission_file.file_id;`,
+    (err, result) => {
+      if (err) {
+        res.json({
+          status: 'error',
+          message: err.message,
+        });
+        return;
+      }
+      const resultArr = result.rows; // postgres returns array of rows
+      if (resultArr.length === 0) {
+        res.json({
+          status: 'fail',
+          message: 'no submission found from the given id',
+        });
+        return;
+      }
+
+      console.log(resultArr);
+
+      res.json({
+        status: 'success',
+        data: {
+          submissionArr: resultArr,
+        },
+        message: 'successfully returned submission with the given id',
+      }); // end res.json
+    } //end callback
+  ); //END  SELECT QUERY
+};
+
 exports.postSubmission = (req, res) => {
   const { userId, assignmentId, filePath, submissionDate } = req.body;
   pg.query(`SELECT * FROM assignment WHERE assignment_id = '${assignmentId}';`, (err, result) => {
