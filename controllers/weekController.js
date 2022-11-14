@@ -754,7 +754,18 @@ exports.deleteSubmission = (req, res) => {
         });
         return;
       }
-      const fileId = result.rows[0].file_id;
+      for (i = 0; i < result.rows.length; i++) {
+        console.log(result.rows[i].file_id);
+        pg.query(`DELETE FROM submission_file WHERE file_id = '${result.rows[i].file_id}';`, (err, result) => {
+          if (err) {
+            res.json({
+              status: 'error',
+              message: err.message,
+            });
+            return;
+          }
+        });
+      }
       pg.query(`DELETE FROM assignment_submission WHERE user_id = '${userId}' AND assignment_id = '${assignmentId}';`, (err, result) => {
         if (err) {
           res.json({
@@ -763,23 +774,15 @@ exports.deleteSubmission = (req, res) => {
           });
           return;
         }
-        pg.query(`DELETE FROM submission_file WHERE file_id = '${fileId}';`, (err, result) => {
-          if (err) {
-            res.json({
-              status: 'error',
-              message: err.message,
-            });
-            return;
-          }
-          res.json({
-            status: 'success',
-            message: 'successfully deleted the submission',
-          });
-        }); //end of DELETE submission_file
-      }); //end of DELETE assignment_submission
-    } //end of callback
-  ); //END DELETE QUERY
-};
+        res.json({
+          status: 'success',
+          message: 'successfully deleted submission with the given id and assignment id',
+        });
+        return;
+      });
+    }
+  ); //END  SELECT QUERY
+}; //end of deleteSubmission
 
 exports.patchVideoProgress = (req, res) => {
   const { userId, weekId, videoProgress } = req.body;
