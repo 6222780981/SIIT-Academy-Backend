@@ -77,7 +77,7 @@ exports.postWeek = async (req, res) => {
     //   status: 'success'
     //   // message: result,
     // });
-    pg.query(`SELECT * FROM week WHERE week_title = $1 ORDER BY week_id DESC LIMIT 1;`, [weekTitle], (err, result) => {
+    pg.query(`SELECT * FROM week WHERE week_title = '${weekTitle}' ORDER BY week_id DESC LIMIT 1;`, (err, result) => {
       if (err) {
         res.json({
           status: 'error',
